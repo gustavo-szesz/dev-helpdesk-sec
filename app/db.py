@@ -27,12 +27,13 @@ sql_statements = [
     """
 ]
 
-def connect(path: str):
-    con = sqlite3.connect(database)
+def connect(path: str = database):
+    con = sqlite3.connect(path)
+    con.row_factory = sqlite3.Row
     con.execute("PRAGMA foreign_keys = ON")
     return con
 
-def create_table(conexao):
+def create_table(con):
     for command in sql_statements:
-        con.execute(command) in conexao
+        con.execute(command)
     con.commit()
