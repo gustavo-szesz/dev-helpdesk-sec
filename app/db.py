@@ -28,7 +28,7 @@ sql_statements = [
 ]
 
 def connect(path: str = database):
-    con = sqlite3.connect(path)
+    con = sqlite3.connect(path, check_same_thread=False)
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA foreign_keys = ON")
     return con

@@ -1,24 +1,17 @@
 import pytest
 import sqlite3
 from app.db import connect, create_table
-
-
-@pytest.fixture
-def con():
-    c = connect(":memory:")
-    create_table(c)
-    yield c
-    c.close()
+from app.seed import seed
 
 
 def test_tables_exist(con):
-    lines = con.execute(
-        "SELECT name FROM sqlite_master WHERE type='table'"
-    ).fetchall()
-    names = [line["name"] for line in lines]
-    assert "tenants" in names
-    assert "users" in names
-    assert "tickets" in names
+    tables = {
+        row["name"]
+        for row in con.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        )
+    }
+    assert {"tenants", "users", "tickets"} <= tables
 
 
 def test_user_without_tenant_is_blocked(con):
@@ -46,3 +39,15 @@ def test_invalid_status_is_blocked(con):
             "INSERT INTO tickets (subject, description, tenants_id, author_id, status) "
             "VALUES ('assunto', 'descricao', 1, 1, 'qualquer_coisa')"
         )
+
+def test_seed_creates_scenario(con):
+    ids = seed(con)
+    assert con.execute("SELECT COUNT(*) FROM tenants").fetchone()[0] == 2    # 6
+    assert con.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 4      # 7
+    assert con.execute("SELECT COUNT(*) FROM tickets").fetchone()[0] == 2    
+
+    ticket = con.execute(
+        "SELECT * FROM tickets WHERE id = ?", (ids["ticket2"],)
+    ).fetchone()
+    assert ticket["tenants_id"] == ids["t2"]
+    assert ticket["author_id"] == ids["client2"]  
